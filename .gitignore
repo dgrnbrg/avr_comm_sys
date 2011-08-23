@@ -1,2 +1,4 @@
 unix_signals_test
 *.sw*
+*.axf
+obj-i686-apple-darwin11
