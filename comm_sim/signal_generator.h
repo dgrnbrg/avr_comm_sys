@@ -6,10 +6,11 @@
 
 #define PWM_PORT PORTB
 #define TIMER_ISR TIMER0_COMPA_vect
-#define TIMER_OVF TIMER0_COMPB_vect
+#define TIMER_OVF TIMER0_OVF_vect
 #define TIMER_CNT TCNT0
 #define TIMER_OCR OCR0A
-#define TIMER_TOP OCR0B
+static uint8_t blah;
+#define TIMER_TOP blah
 
 void pwm_set_duty_cycle(uint8_t index, uint8_t cycle);
 

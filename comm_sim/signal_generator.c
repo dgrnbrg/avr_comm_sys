@@ -2,17 +2,6 @@
 #include <stdint.h>
 #include "signal_generator.h"
 
-ISR(TIMER_ISR) {
-  uint8_t now = TIMER_CNT;
-  uint8_t next_time;
-  if (pwm_tick(now, &next_time)) {
-    TIMER_OCR = next_time;
-  }
-}
-
-ISR(TIMER_OVF) {
-  pwm_overflow();
-}
 
 //this allows for 8 max pwm channels, since they
 //must happen on a single port
@@ -27,6 +16,7 @@ void pwm_set_duty_cycle(uint8_t index, uint8_t cycle) {
 
 void pwm_set_enable_mask(uint8_t mask) {
   softpwm_enable_mask = mask;
+  pwm_overflow();
 }
 
 void pwm_set_period(uint8_t period) {
@@ -35,10 +25,14 @@ void pwm_set_period(uint8_t period) {
 
 void pwm_overflow(void) {
   uint8_t mask = softpwm_enable_mask;
-  uint8_t x = mask;
+  uint8_t x = 0;
+  uint8_t first_int = 0xff;
   for (uint8_t i = 0; i < 8; i++) {
-    if (!softpwm_duty_cycles[i]) x &= ~_BV(i);
+    uint8_t duty_cycle = softpwm_duty_cycles[i];
+    if (duty_cycle) x |= _BV(i);
+    if (duty_cycle && duty_cycle < first_int) first_int = duty_cycle;
   }
+  TIMER_OCR = first_int;
   //turn off all pwm pins, then reenable the ones with nonzero duty cycles
   PWM_PORT = (PWM_PORT & ~mask) | x;
 }
@@ -54,14 +48,15 @@ uint8_t pwm_tick(uint8_t now, uint8_t * next_time) {
     if ((mask & _BV(i)) == 0) continue;
     uint8_t duty_cycle = softpwm_duty_cycles[i];
     //turn off earlier ones and find the nearest next one
-    if (duty_cycle <= now)
+    if (duty_cycle <= now) {
       x &= ~_BV(i);
-    else if (duty_cycle <= *next_time) {
+    } else if (duty_cycle <= *next_time) {
       found_next = 1;
       *next_time = duty_cycle;
     }
   }
   PWM_PORT &= x;
+  PORTC = (PORTC & 0xf0) | (0xf & x);
   return found_next;
 }
 
