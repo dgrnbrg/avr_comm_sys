@@ -77,9 +77,9 @@ int main(int argc, char *argv[])
 #endif
 
 	// even if not setup at startup, activate gdb if crashing
-	avr->gdb_port = 1234;
 	if (0) {
-		//avr->state = cpu_Stopped;
+		avr->gdb_port = 1234;
+		avr->state = cpu_Stopped;
 		avr_gdb_init(avr);
 	}
 
@@ -90,10 +90,12 @@ int main(int argc, char *argv[])
 	 *	Pressing "r" and "s" during the demo will start and stop recording
 	 *	the pin changes
 	 */
+#if 1
 	avr_vcd_init(avr, "gtkwave_output.vcd", &vcd_file, 100000 /* usec */);
 	avr_vcd_add_signal(&vcd_file, 
 		avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), IOPORT_IRQ_PIN_ALL), 8 /* bits */ ,
 		"portb" );
+#endif
 #if 0
 	avr_vcd_add_signal(&vcd_file, 
 		button.irq + IRQ_BUTTON_OUT, 1 /* bits */ ,
@@ -103,10 +105,10 @@ int main(int argc, char *argv[])
 	// 'raise' it, it's a "pullup"
 	//avr_raise_irq(button.irq + IRQ_BUTTON_OUT, 1);
 
-	avr_vcd_start(&vcd_file);
+	//avr_vcd_start(&vcd_file);
 
-	while (1) {
+	for (int i = 0; i < 3e4; i++) {
 		avr_run(avr);
 	}
-	avr_vcd_stop(&vcd_file);
+	//avr_vcd_stop(&vcd_file);
 }

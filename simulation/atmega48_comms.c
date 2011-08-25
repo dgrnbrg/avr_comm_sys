@@ -22,86 +22,45 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
+#include <avr/wdt.h>
 
 // for linker, emulator, and programmer's sake
 #include "avr_mcu_section.h"
-AVR_MCU(F_CPU, "atmega48");
+AVR_MCU(F_CPU, "attiny13");
 
-#include <stdio.h>
-/* ------------------------------------------------------------------------- */
-static int uart_putchar(char c, FILE *stream) {
-  if (c == '\n')
-    uart_putchar('\r', stream);
-  loop_until_bit_is_set(UCSR0A, UDRE0);
-  UDR0 = c;
-  return 0;
+#include "signal_generator.h"
+
+#if 0
+ISR(TIMER_ISR) {
+  uint8_t now = TIMER_CNT;
+  uint8_t next_time;
+  if (pwm_tick(now, &next_time)) {
+    TIMER_OCR = next_time;
+  }
 }
 
-static FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL,
-                                         _FDEV_SETUP_WRITE);
-
-#define	TICK_HZ					64
-
-volatile uint32_t tickCount;
-
-ISR(TIMER2_COMPA_vect)		// handler for Output Compare 1 overflow interrupt
-{
-	sei();
-	tickCount++;
+ISR(TIMER_OVF) {
+  pwm_overflow();
 }
-
-void tick_init()
-{
-	/*
-		Timer 2 as RTC
-	 */
-	// needs to do that before changing the timer registers
-	// ASYNC timer using a 32k crystal
-	ASSR |= (1 << AS2);
-	TCCR2A = (1 << WGM21);
-    // use CLK/8 prescale value, clear timer/counter on compareA match
-    TCCR2B = (2 << CS20);
- /*   -- MathPad
-		clock=32768
-		prescaler=8
-		hz=64
-		(clock/prescaler/hz)-1:63 -- */
-    OCR2A = 63;
-    TIMSK2  |= (1 << OCIE2A);
-}
-
-volatile uint8_t pressed = 0;
-
-ISR(PCINT1_vect)
-{
-	pressed = (PINC & (1 << PC0)) ? 0 : 1;
-	// wouldn't do that on real hardware, but it's a demo...
-	printf("PCINT1_vect %02x\n", PINC);
-}
+#endif
 
 int main()
 {	
 	DDRB=0xff;	// all PORT B output
-	DDRC = 0;	// make PORT C input
-	// enable pin change interrupt for PORT C pin 0
-	PCMSK1 |= (1 << PCINT8);	// C0
-	PCICR |= (1 << PCIE1);
-
-	stdout = &mystdout;
-	
-	tick_init();
+	wdt_disable();
+	while (1);
+#if 0
+	pwm_set_duty_cycle(0,0);
+	pwm_set_duty_cycle(1,64);
+	pwm_set_duty_cycle(2,128);
+	pwm_set_duty_cycle(3,192);
+	pwm_set_duty_cycle(4,255);
+	pwm_set_period(0xff);
+	pwm_set_enable_mask(0x1f);
+	TCCR0B = 3;
+	TIMSK0 = 12;
 	sei();
-
-	uint8_t mask = 0;
-	for (;;) {
-		mask <<= 1;
-		if (!mask)
-			mask = 1;
-		if (pressed)
-			PORTB = 0xff;
-		else
-			PORTB = mask;
-		sleep_mode();
-	}	
+	while(1);
+#endif
 }
 

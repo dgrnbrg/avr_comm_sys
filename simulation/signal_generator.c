@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "signal_generator.h"
 
-#if 0
 ISR(TIMER_ISR) {
   uint8_t now = TIMER_CNT;
   uint8_t next_time;
@@ -14,7 +13,6 @@ ISR(TIMER_ISR) {
 ISR(TIMER_OVF) {
   pwm_overflow();
 }
-#endif
 
 //this allows for 8 max pwm channels, since they
 //must happen on a single port
