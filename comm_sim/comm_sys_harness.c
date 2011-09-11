@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 	 *	the pin changes
 	 */
 #if 1
-	avr_vcd_init(avr, "gtkwave_output.vcd", &vcd_file, 10000 /* usec */);
+	avr_vcd_init(avr, "gtkwave_output.vcd", &vcd_file, 1000 /* usec */);
 	avr_vcd_add_signal(&vcd_file, 
 		avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), IOPORT_IRQ_PIN_ALL), 8 /* bits */ ,
 		"portb" );
@@ -111,8 +111,9 @@ int main(int argc, char *argv[])
 
 	avr_vcd_start(&vcd_file);
 
-	for (int i = 0; i < 1e6; i++) {
+	for (int i = 0; i < 1e7; i++) {
 		avr_run(avr);
 	}
+	fsync(vcd_file.output);
 	avr_vcd_stop(&vcd_file);
 }

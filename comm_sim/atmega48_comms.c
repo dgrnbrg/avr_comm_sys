@@ -28,43 +28,39 @@
 #include "avr_mcu_section.h"
 AVR_MCU(F_CPU, "atmega48");
 
-#include "signal_generator.h"
+#define SIGNAL_PORT PORTB
+#include "pwm_generator.c"
 
-ISR(TIMER_ISR) {
-  uint8_t now = TIMER_CNT;
-  uint8_t next_time;
-  if (pwm_tick(now, &next_time)) {
-    TIMER_OCR = next_time;
-  }
-}
+volatile uint8_t now;
 
-ISR(TIMER_OVF) {
-  pwm_overflow();
+ISR(TIMER0_COMPA_vect) {
+	OCR0A = signal_tick(TCNT0);
+//	PORTC = (old & ~_BV(0)) | ~(old & _BV(0));
+//	PORTC = OCR0A;
 }
 
 int main()
 {	
 	DDRB=0xff;	// all PORT B output
-	wdt_disable();
 	TCCR0B = 3;
 	TIMSK0 = 1<<OCIE0A | 1<<TOIE0;
-	pwm_set_duty_cycle(0,0);
-	pwm_set_duty_cycle(1,64);
-	pwm_set_duty_cycle(2,128);
-	pwm_set_duty_cycle(3,192);
-	pwm_set_duty_cycle(4,255);
-	pwm_set_period(0xff);
-	pwm_set_enable_mask(0x1f);
+	OCR0A = 0xff;
 
 	DDRC = 0xff;
 
+	struct period on = { .level = 1, .duration = 74 };
+	struct period off = { .level = 0, .duration = 37 };
+	on.next = &off;
+	off.next = &on;
+	signals[0] = &on;
+
 	sei();
 	volatile int i;
-	PORTC = 0;
 #if 1
 	while(1) {
-		for (i = 0; i < 0x3f; i++);
-		PORTC = (PORTC & 0xf) | (TCNT0);
+//		for (i = 0; i < 0x3f; i++);
+//		PORTC = (PORTC & 0xf) | (TCNT0 & 0xf0);
+//		now = TCNT0;
 	}
 #endif
 }
