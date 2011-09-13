@@ -43,16 +43,19 @@ uint8_t signal_tick(uint8_t now) {
 		if (signals[i] == NULL) continue; //no signal
 
 		uint8_t credit = signals[i]->credit;
-		uint8_t tmp;
-		if ((tmp = credit + cur_delta) < credit)
+		uint8_t tmp = credit + cur_delta;
+		if (tmp < credit) //overflow, so saturate
 			tmp = 0xff;
 		credit = tmp;
 
-		if (credit >= signals[i]->duration) {
+		while (credit >= signals[i]->duration) {
 			//elapsed
 			signals[i] = signals[i]->next;
 			port_mask |= _BV(i);
-			if (signals[i]->level) port_vals |= _BV(i);
+			if (signals[i]->level)
+				port_vals |= _BV(i);
+			else
+				port_vals &= ~_BV(i);
 			credit = 0;
 			signals[i]->duration = signals[i]->next_duration;
 		}
