@@ -39,6 +39,26 @@ ISR(TIM0_COMPA_vect) {
 //	PORTC = OCR0A;
 }
 
+static struct period *
+alloc_period(uint8_t level, uint8_t duration, struct period * next)
+{
+	struct period * p = malloc(sizeof(*p));
+	p->level = level;
+	p->next_duration = duration;
+	p->next = next;
+	return p;
+}
+
+static struct period *
+alloc_period_loop(uint8_t level, uint8_t duration, struct period *** pnext)
+{
+	struct period * p = malloc(sizeof(*p));
+	p->level = level;
+	p->next_duration = duration;
+	*pnext = &p->next;
+	return p;
+}
+
 int main()
 {	
 	DDRB=0xff;	// all PORT B output
@@ -46,11 +66,16 @@ int main()
 	TIMSK0 = 1<<OCIE0A;
 	OCR0A = 0xff;
 
+	struct period ** pp;
+	signals[0] = alloc_period(1, 10, alloc_period_loop(0, 200, &pp));
+	*pp = signals[0];
+#if 0
 	static struct period on = { .level = 1, .next_duration = 10, .credit = 0 };
 	static struct period off = { .level = 0, .next_duration = 200, .credit = 0 };
 	on.next = &off;
 	off.next = &on;
 	signals[0] = &on;
+#endif
 
 #if 0
 	static struct period on2 = { .level = 1, .next_duration = 20, .credit = 0 };
